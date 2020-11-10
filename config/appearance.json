@@ -1,0 +1,114 @@
+{
+    "error": {
+        "emoji": "<:ErrorEmojiDoNotDelete:756542028052955267>",
+        "colour": "#FF0000"
+    },
+    "restricted": {
+        "emoji": "<:no:760927320205951026>",
+        "colour": "#FFAA00"
+    },
+    "warn": {
+        "emoji": "<:warn:773282419938689024>",
+        "colour": "#FFD030"
+    },
+    "info": {
+        "emoji": "<:InfoEmojiDoNotDelete:756542028015337503>",
+        "colour": "#46A0FF"
+    },
+    "general": {
+        "emoji": "",
+        "colour": "#ca98ff"
+    },
+    "processing": {
+        "emoji": "<:processing:773284207329542144>",
+        "colour": "#FFCC00"
+    },
+    "success": {
+        "emoji": "<:SuccessEmojiDoNotDelete:756543071784665171>",
+        "colour": "#2ecc71"
+    },
+    "playerEmojis": {
+        "like": {
+            "emoji": "<:like:770652819833094165>",
+            "name": "like",
+            "id": "770652819833094165"
+        },
+        "shuffle": {
+            "emoji": "<:shuffle:770651402074456094>",
+            "name": "shuffle",
+            "id": "770651402074456094"
+        },
+        "previous_track": {
+            "emoji": "<:previous_track:770651401663021097>",
+            "name": "previous_track",
+            "id": "770651401663021097"
+        },
+        "play_or_pause": {
+            "emoji": "<:play_or_pause:770651401721610263>",
+            "name": "play_or_pause",
+            "id": "770651401721610263"
+        },
+        "next_track": {
+            "emoji": "<:next_track:770651401667608577>",
+            "name": "next_track",
+            "id": "770651401667608577"
+        },
+        "loop": {
+            "emoji": "<:loop:770651401579790337>",
+            "name": "loop",
+            "id": "770651401579790337"
+        },
+        "stop": {
+            "emoji": "<:stop:770973533265723403>",
+            "name": "stop",
+            "id": "770973533265723403"
+        },
+        "disconnect": {
+            "emoji": "<:disconnect:770973561061113864>",
+            "name": "disconnect",
+            "id": "770973561061113864"
+        },
+        "voice_channel_icon_normal": {
+            "emoji": "<:voicechanneliconnormal:771618242820440065>",
+            "name": "voicechanneliconnormal",
+            "id": "771618242820440065"
+        },
+        "voice_channel_icon_normal_locked": {
+            "emoji": "<:voicechanneliconnormallocked:771618243017572352>",
+            "name": "voicechanneliconnormallocked",
+            "id": "771618243017572352"
+        },
+        "voice_channel_icon_error_locked": {
+            "emoji": "<:voicechanneliconerrorlocked:771618243173154816>",
+            "name": "voicechanneliconerrorlocked",
+            "id": "771618243173154816"
+        },
+        "arrow_up": {
+            "emoji": "<:arrow_up:772646271357288483>",
+            "name": "arrow_up",
+            "id": "772646271357288483"
+        },
+        "arrow_down": {
+            "emoji": "<:arrow_down:772646267314110484>",
+            "name": "arrow_down",
+            "id": "772646267314110484"
+        },
+        "arrow_left": {
+            "emoji": "<:arrow_left:772646271341166622>",
+            "name": "arrow_left",
+            "id": "772646271341166622"
+        },
+        "arrow_right": {
+            "emoji": "<:arrow_right:772646271101042689>",
+            "name": "arrow_right",
+            "id": "772646271101042689"
+        }
+    },
+    "additionalEmojis": {
+        "pandaExcitedLove": {
+            "emoji": "<a:pandaexcitedlove:761291668031930370>",
+            "name": "pandaexcitedlove",
+            "id": "761291668031930370"
+        }
+    }
+}

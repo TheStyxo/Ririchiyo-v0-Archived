@@ -1,0 +1,35 @@
+{
+    "client": {
+        "shards": {
+            "totalShards": 1
+        },
+        "commands": {
+            "defaultPrefix": "rs!",
+            "defaultCooldown": 1
+        },
+        "activity": {
+            "normal": {
+                "status": "rs! Help!",
+                "type": "LISTENING"
+            },
+            "devMode": {
+                "status": "DEVs.",
+                "type": "LISTENING",
+                "enabled": false
+            }
+        },
+        "music": {
+            "defaultVotingPercentage": 45,
+            "defaultLoopValue": "d",
+            "defaultVolume": 100,
+            "defaultLimitVolume": true
+        },
+        "info": {
+            "websiteURL": "https://ririchiyobot.wixsite.com/ririchiyo",
+            "supportServerURL": "https://discord.gg/XgwdeEv",
+            "version": "0.8.9",
+            "library": "discord.js @^12.4.1",
+            "hosting": "@localhost/ririchiyo-dev-deps"
+        }
+    }
+}

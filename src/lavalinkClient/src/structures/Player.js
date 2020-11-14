@@ -11,27 +11,6 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.Player = void 0;
 const Utils_1 = require("./Utils");
-function check(options) {
-    if (!options)
-        throw new TypeError("PlayerOptions must not be empty.");
-    if (!/^\d+$/.test(options.guild))
-        throw new TypeError('Player option "guild" must be present and be a non-empty string.');
-    if (options.textChannel && !/^\d+$/.test(options.textChannel))
-        throw new TypeError('Player option "textChannel" must be a non-empty string.');
-    if (options.voiceChannel && !/^\d+$/.test(options.voiceChannel))
-        throw new TypeError('Player option "voiceChannel" must be a non-empty string.');
-    if (options.node && typeof options.node !== "string")
-        throw new TypeError('Player option "node" must be a non-empty string.');
-    if (typeof options.volume !== "undefined" &&
-        typeof options.volume !== "number")
-        throw new TypeError('Player option "volume" must be a number.');
-    if (typeof options.selfMute !== "undefined" &&
-        typeof options.selfMute !== "boolean")
-        throw new TypeError('Player option "selfMute" must be a boolean.');
-    if (typeof options.selfDeafen !== "undefined" &&
-        typeof options.selfDeafen !== "boolean")
-        throw new TypeError('Player option "selfDeafen" must be a boolean.');
-}
 class Player {
     /**
      * Creates a new player, returns one if it already exists.
@@ -67,10 +46,9 @@ class Player {
             this.manager = Utils_1.Structure.get("Player")._manager;
         if (!this.manager)
             throw new RangeError("Manager has not been initiated.");
-        if (this.manager.players.has(options.guild)) {
-            return this.manager.players.get(options.guild);
+        if (this.manager.players.has(options.guild.id)) {
+            return this.manager.players.get(options.guild.id);
         }
-        check(options);
         this.guild = options.guild;
         if (options.voiceChannel)
             this.voiceChannel = options.voiceChannel;
@@ -80,7 +58,7 @@ class Player {
         this.node = node || this.manager.leastLoadNodes.first();
         if (!this.node)
             throw new RangeError("No available nodes.");
-        this.manager.players.set(options.guild, this);
+        this.manager.players.set(options.guild.id, this);
         this.manager.emit("playerCreate", this);
         this.setVolume((_a = options.volume) !== null && _a !== void 0 ? _a : 100);
     }
@@ -115,7 +93,7 @@ class Player {
      * Sets the players equalizer band on-top of the existing ones.
      * @param bands
      */
-    setEQ(...bands) {
+    setEQ(bands) {
         if (bands.length &&
             !bands.every((band) => JSON.stringify(Object.keys(band).sort()) === '["band","gain"]'))
             throw new TypeError("Channel must be a non-empty string.");
@@ -123,7 +101,7 @@ class Player {
             this.bands[band] = gain;
         this.node.send({
             op: "equalizer",
-            guildId: this.guild,
+            guildId: this.guild.id,
             bands: this.bands.map((gain, band) => ({ band, gain })),
         });
         return this;
@@ -138,11 +116,11 @@ class Player {
         if (!this.voiceChannel)
             throw new RangeError("No voice channel has been set.");
         this.state = "CONNECTING";
-        this.manager.options.send(this.guild, {
+        this.manager.options.send(this.guild.id, {
             op: 4,
             d: {
-                guild_id: this.guild,
-                channel_id: this.voiceChannel,
+                guild_id: this.guild.id,
+                channel_id: this.voiceChannel.id,
                 self_mute: this.options.selfMute || false,
                 self_deaf: this.options.selfDeafen || false,
             },
@@ -156,16 +134,16 @@ class Player {
             return this;
         this.state = "DISCONNECTING";
         this.pause(true);
-        this.manager.options.send(this.guild, {
+        this.manager.options.send(this.guild.id, {
             op: 4,
             d: {
-                guild_id: this.guild,
+                guild_id: this.guild.id,
                 channel_id: null,
                 self_mute: false,
                 self_deaf: false,
             },
         });
-        this.voiceChannel = null;
+        this.voiceChannel.id = null;
         this.state = "DISCONNECTED";
         return this;
     }
@@ -175,18 +153,16 @@ class Player {
         this.disconnect();
         this.node.send({
             op: "destroy",
-            guildId: this.guild,
+            guildId: this.guild.id,
         });
         this.manager.emit("playerDestroy", this);
-        this.manager.players.delete(this.guild);
+        this.manager.players.delete(this.guild.id);
     }
     /**
      * Sets the player voice channel.
      * @param channel
      */
     setVoiceChannel(channel) {
-        if (typeof channel !== "string")
-            throw new TypeError("Channel must be a non-empty string.");
         this.voiceChannel = channel;
         this.connect();
         return this;
@@ -196,8 +172,6 @@ class Player {
      * @param channel
      */
     setTextChannel(channel) {
-        if (typeof channel !== "string")
-            throw new TypeError("Channel must be a non-empty string.");
         this.textChannel = channel;
         return this;
     }
@@ -225,7 +199,7 @@ class Player {
                     return;
                 }
             }
-            const options = Object.assign({ op: "play", guildId: this.guild, track: this.queue.current.track }, finalOptions);
+            const options = Object.assign({ op: "play", guildId: this.guild.id, track: this.queue.current.track }, finalOptions);
             if (typeof options.track !== "string") {
                 options.track = options.track.track;
             }
@@ -243,7 +217,7 @@ class Player {
         this.volume = Math.max(Math.min(volume, 1000), 0);
         this.node.send({
             op: "volume",
-            guildId: this.guild,
+            guildId: this.guild.id,
             volume: this.volume,
         });
         return this;
@@ -286,7 +260,7 @@ class Player {
     stop() {
         this.node.send({
             op: "stop",
-            guildId: this.guild,
+            guildId: this.guild.id,
         });
         return this;
     }
@@ -301,7 +275,7 @@ class Player {
         this.paused = pause;
         this.node.send({
             op: "pause",
-            guildId: this.guild,
+            guildId: this.guild.id,
             pause,
         });
         return this;
@@ -322,7 +296,7 @@ class Player {
         this.position = position;
         this.node.send({
             op: "seek",
-            guildId: this.guild,
+            guildId: this.guild.id,
             position,
         });
         return this;

@@ -26,10 +26,10 @@ module.exports = class CommandHandlerUtil extends CommandUtil {
         else {
             success = false;
             const messageToBeSent = `I dont have permissions to send messages on \`${await client.guilds.fetch(guildID).then(guild => guild.name)}\` in \`#${await client.guilds.fetch(guildID).then(guild => guild.channels.cache.find(channel => channel.id === channelID).name)}\``;
-            DMsuccess = await sendDirectMessageHandler(client, message, messageToBeSent, userIdToDM);
+            const DMsuccess = await this.sendDirectMessageHandler(client, message, messageToBeSent, userIdToDM);
             if (DMsuccess == false && userOrOwner == 'User' && userIdToDM !== await client.guilds.fetch(guildID).then(guild => guild.owner.id).catch(error => console.error(`Could not get guild owner ID in actionHandlers/sendMessage.js`))) {
                 userIdToDM = await client.guilds.fetch(guildID).then(guild => guild.owner.id).catch(error => console.error(`Could not get guild owner ID in actionHandlers/sendMessage.js`));
-                await sendDirectMessageHandler(client, message, messageToBeSent, userIdToDM);
+                await this.sendDirectMessageHandler(client, message, messageToBeSent, userIdToDM);
             }
 
         }
@@ -40,11 +40,11 @@ module.exports = class CommandHandlerUtil extends CommandUtil {
         let success = true;
         if (message !== null && !userIdToDM) userIdToDM = message.author.id;
 
-        obj = await client.users.fetch(userIdToDM).then(async (user) => {
+        const obj = await client.users.fetch(userIdToDM).then(async (user) => {
             await user.send(messageToBeSent).catch(error => {
                 success = false;
             });
         });
-        return await successTest(success, obj);
+        return { success: success, obj: obj };
     }
 }

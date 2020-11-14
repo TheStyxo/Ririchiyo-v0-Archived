@@ -27,7 +27,12 @@ module.exports = class HelpCommand extends BaseCommand {
         }
         else {
             //get commands usable by user
-            const commands = message.client.commands.array().filter(cmd => !cmd.hidden);
+            const commands = message.client.commands.array().filter(cmd => {
+                let hasPermissionToView;
+                if (cmd.requiredPermissionsToView) hasPermissionToView = !this.hasAll(message.author.permissions.internal.final.toArray(), cmd.requiredPermissionsToView.internal) && !this.hasAll(message.author.permissions.discord.final.toArray(), cmd.requiredPermissionsToView.discord);
+                else hasPermissionToView = true;
+                return !cmd.hidden && hasPermissionToView
+            });
 
             //get command categories usable by user
             const allCommandCategories = [];

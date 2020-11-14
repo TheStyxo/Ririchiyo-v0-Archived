@@ -1,4 +1,4 @@
-class MusicSettings {
+module.exports = class MusicSettings {
     constructor(db, musicSettingsData, id) {
         this.volume = new Volume(db, musicSettingsData.volume, id);
         this.eq = new EQSettings(db, musicSettingsData.eq, id)

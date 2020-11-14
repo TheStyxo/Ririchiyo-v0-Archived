@@ -1,13 +1,12 @@
 const { Collection } = require('discord.js');
 const BaseCommand = require('../../utils/structures/BaseCommand');
-const idOrTagRegex = /(?:<?@?&?!?)(?<id>\d{8,})(>?)/;
 const managableMusicPermissions = ['DJ', 'SUMMON_PLAYER', 'VIEW_QUEUE', 'ADD_TO_QUEUE', 'MANAGE_QUEUE', 'MANAGE_PLAYER'];
 const managableInternalPermissions = managableMusicPermissions;
-const managableDiscordPermissions = ['ADMINISTRATOR', 'KICK_MEMBERS', 'BAN_MEMBERS', 'MANAGE_CHANNELS', 'MANAGE_GUILD', 'VIEW_AUDIT_LOG', 'MANAGE_MESSAGES', 'MUTE_MEMBERS', 'DEAFEN_MEMBERS', 'MOVE_MEMBERS', 'MANAGE_NICKNAMES', 'MANAGE_ROLES']
+const managableDiscordPermissions = ['ALL', 'CREATE_INSTANT_INVITE', 'KICK_MEMBERS', 'BAN_MEMBERS', 'MANAGE_CHANNELS', 'MANAGE_GUILD', 'ADD_REACTIONS', 'VIEW_AUDIT_LOG', 'PRIORITY_SPEAKER', 'STREAM', 'VIEW_CHANNEL', 'SEND_MESSAGES', 'SEND_TTS_MESSAGES', 'MANAGE_MESSAGES', 'EMBED_LINKS', 'ATTACH_FILES', 'READ_MESSAGE_HISTORY', 'MENTION_EVERYONE', 'USE_EXTERNAL_EMOJIS', 'VIEW_GUILD_INSIGHTS', 'CONNECT', 'SPEAK', 'MUTE_MEMBERS', 'DEAFEN_MEMBERS', 'MOVE_MEMBERS', 'USE_VAD', 'CHANGE_NICKNAME', 'MANAGE_NICKNAMES', 'MANAGE_ROLES', 'MANAGE_WEBHOOKS', 'MANAGE_EMOJIS']
 const allManagablePermissions = managableInternalPermissions.concat(managableDiscordPermissions);
 const collectivePermissions = new Collection([
-    ["DJ", managableMusicPermissions.filter(v => !(["DJ"].includes(v)))],
-    ["ADMINISTRATOR", allManagablePermissions.filter(v => !(["ADMINISTRATOR", "DJ"].includes(v)))]
+    ["DJ", managableMusicPermissions.filter(v => !([].includes(v)))],
+    ["ALL", allManagablePermissions.filter(v => !(["ALL"].includes(v)))]
 ]);
 const managablePermissionsString = `You can modify the following internal permissions for a user!\n\n**Managable permissions**\n•\`${allManagablePermissions.join("`\n•`")}\``
 
@@ -36,7 +35,7 @@ class PermissionCommandUtil extends BaseCommand {
         for (const id of await roleOrUserData.keys()) {
             IDsArray.push(id);
         }
-        return IDsArray.length > 0 ? `•<@${IDsArray.join(`>\n•<@${role ? "&" : ""}`)}>` : null;
+        return IDsArray.length > 0 ? `•<@${role ? "&" : ""}${IDsArray.join(`>\n•<@${role ? "&" : ""}`)}>` : null;
     }
 
     async displayPermissionsSingle(permissionData) {
@@ -57,12 +56,14 @@ class PermissionCommandUtil extends BaseCommand {
 
     parseInput(input) {
         const idMatch = /(?:<@&?!?)?(?<id>\d{16,})(?:>?)/.exec(input);
-        const optionMatch = /(add|give|allow|remove|take|deny|delete|reset|default)/.exec(input);
-        const forChannelMatch = /(c|chan|channel|this)/.exec(input);
+        const optionMatch = /(\badd\b|\bgive\b|\ballow\b|\bremove\b|\brem\b|\btake\b|\bdeny\b|\bdelete\b|\bres\b|\breset\b|\bdefault\b)/.exec(input);
+        const forChannelMatch = /(\bc\b|\bchan\b|\bchannel\b|\bthis\b)/.exec(input);
+        const forRoleOrUserMatch = /(\br\b|\brole\b|\broles\b|\bu\b|\buser\b|\busers\b)/.exec(input);
         if (idMatch) input = input.replace(idMatch[0], "");
         if (optionMatch) input = input.replace(optionMatch[0], "");
         if (forChannelMatch) input = input.replace(forChannelMatch[0], "");
-        return { id: idMatch ? idMatch[1] : null, option: optionMatch ? optionMatch[1] : null, forChannel: forChannelMatch ? forChannelMatch[1] : null, requestedPerms: input.trim().replace(/[,]/, "").toUpperCase().split(/\s+/) };
+        if (forRoleOrUserMatch) input = input.replace(forRoleOrUserMatch[0], "");
+        return { id: idMatch ? idMatch[1] : null, option: optionMatch ? optionMatch[1] : null, forChannel: forChannelMatch ? forChannelMatch[1] : null, forRoleOrUser: forRoleOrUserMatch ? forRoleOrUserMatch[1].toLowerCase() : "all", requestedPerms: input.trim().replace(/[,]/, "").toUpperCase().split(/\s+/).filter(v => v != "") };
     }
     async findUser(guild, id) {
         if (!id) return;
@@ -88,7 +89,7 @@ module.exports = class PermissionCommand extends PermissionCommandUtil {
             }
         }
         else {
-            const { id, option, forChannel, requestedPerms } = this.parseInput(arg);
+            const { id, option, forChannel, forRoleOrUser, requestedPerms } = this.parseInput(arg);
             const requestedPermissions = requestedPerms ? this.handleCollectivePerms(requestedPerms) : [];
 
             switch (option) {
@@ -105,7 +106,7 @@ module.exports = class PermissionCommand extends PermissionCommandUtil {
                 case 'add':
                 case 'give': {
                     if (!message.author.permissions.discord.final.has("ADMINISTRATOR")) return message.channel.send(this.embedify(message.guild, "You need to have administrator permission on this server to modify permissions!", true));
-                    const { roleOrUser } = await this.findUser(message.guild, id);
+                    const { roleOrUser } = id ? await this.findUser(message.guild, id) : {};
                     if (id && !roleOrUser) return message.channel.send(this.embedify(message.guild, "Did not find the user you were searching for!", true));
 
                     const arrayCheck = await this.hasAll(allManagablePermissions, requestedPermissions);
@@ -113,10 +114,16 @@ module.exports = class PermissionCommand extends PermissionCommandUtil {
                     if (arrayCheck) return message.channel.send(this.embedify(message.guild, `${managablePermissionsString}\n\n\`${this.limitLength(arrayCheck.join("`, `"), 1200)}\` ${arrayCheck.length > 1 ? `are not valid permissions!` : `is not a valid permission!`}`, true));
 
                     const roleOrUserPermissionData = roleOrUser.user ? await guildData.settings.permissions.users.getForUser(roleOrUser.id) : await guildData.settings.permissions.roles.getForRole(roleOrUser.id);
+
+                    const internalPermissionsToModify = [];
+                    const discordPermissionsToModify = [];
                     for (const permission of requestedPermissions) {
-                        if (managableInternalPermissions.includes(permission)) await roleOrUserPermissionData.internal.allow(permission);
-                        if (managableDiscordPermissions.includes(permission)) await roleOrUserPermissionData.discord.allow(requestedPermissions);
+                        if (managableInternalPermissions.includes(permission)) internalPermissionsToModify.push(permission);
+                        if (managableDiscordPermissions.includes(permission)) discordPermissionsToModify.push(permission);
                     }
+
+                    if (internalPermissionsToModify.length > 0) await roleOrUserPermissionData.internal.allow(internalPermissionsToModify);
+                    if (discordPermissionsToModify.length > 0) await roleOrUserPermissionData.discord.allow(discordPermissionsToModify);
 
                     return message.channel.send(this.embedify(message.guild, `Allowed the following permissions to ${roleOrUser}\n•\`${requestedPermissions.join("`\n•`")}\``))
                 }
@@ -125,7 +132,7 @@ module.exports = class PermissionCommand extends PermissionCommandUtil {
                 case 'rem':
                 case 'take': {
                     if (!message.author.permissions.discord.final.has("ADMINISTRATOR")) return message.channel.send(this.embedify(message.guild, "You need to have administrator permission on this server to modify permissions!", true));
-                    const { roleOrUser } = await this.findUser(message.guild, id);
+                    const { roleOrUser } = id ? await this.findUser(message.guild, id) : {};
                     if (id && !roleOrUser) return message.channel.send(this.embedify(message.guild, "Did not find the user you were searching for!", true));
 
                     const arrayCheck = await this.hasAll(allManagablePermissions, requestedPermissions);
@@ -133,59 +140,68 @@ module.exports = class PermissionCommand extends PermissionCommandUtil {
                     if (arrayCheck) return message.channel.send(this.embedify(message.guild, `${managablePermissionsString}\n\n\`${this.limitLength(arrayCheck.join("`, `"), 1200)}\` ${arrayCheck.length > 1 ? `are not valid permissions!` : `is not a valid permission!`}`, true));
 
                     const roleOrUserPermissionData = roleOrUser.user ? await guildData.settings.permissions.users.getForUser(roleOrUser.id) : await guildData.settings.permissions.roles.getForRole(roleOrUser.id);
+
+                    const internalPermissionsToModify = [];
+                    const discordPermissionsToModify = [];
                     for (const permission of requestedPermissions) {
-                        if (managableInternalPermissions.includes(permission)) await roleOrUserPermissionData.internal.deny(permission);
-                        if (managableDiscordPermissions.includes(permission)) await roleOrUserPermissionData.discord.deny(requestedPermissions);
+                        if (managableInternalPermissions.includes(permission)) internalPermissionsToModify.push(permission);
+                        if (managableDiscordPermissions.includes(permission)) discordPermissionsToModify.push(permission);
                     }
+
+                    if (internalPermissionsToModify.length > 0) await roleOrUserPermissionData.internal.deny(internalPermissionsToModify);
+                    if (discordPermissionsToModify.length > 0) await roleOrUserPermissionData.discord.deny(discordPermissionsToModify);
 
                     return message.channel.send(this.embedify(message.guild, `Denied the following permissions to ${roleOrUser}\n•\`${requestedPermissions.join("`\n•`")}\``))
                 }
                 case 'reset':
                 case 'res': {
                     if (!message.author.permissions.discord.final.has("ADMINISTRATOR")) return message.channel.send(this.embedify(message.guild, "You need to have administrator permission on this server to modify permissions!", true));
-                    const { roleOrUser } = await this.findUser(message.guild, id);
+                    const { roleOrUser } = id ? await this.findUser(message.guild, id) : {};
                     if (id && !roleOrUser) return message.channel.send(this.embedify(message.guild, "Did not find the user you were searching for!", true));
 
                     const arrayCheck = await this.hasAll(allManagablePermissions, requestedPermissions);
-                    if (requestedPermissions.length < 1 || !roleOrUser) return message.channel.send(this.embedify(message.guild, `You can modify the following internal permissions for a user!\n\n**Managable permissions**\n•\`${allManagablePermissions.join("`\n•`")}\`\n\nUse \`${message.prefix + this.name} <user|role> <add|remove> <permission|permissions>\` to modify permission overrides for a role or user.`));
+                    if (requestedPermissions.length < 1 && !roleOrUser && !arrayCheck) {
+                        switch (forRoleOrUser) {
+                            default:
+                                await guildData.settings.permissions.users.resetAll();
+                                await guildData.settings.permissions.roles.resetAll();
+                                return message.channel.send(this.embedify(message.guild, `Successfully reset all permission overrides on this server!`));
+                            case 'r':
+                            case 'role':
+                            case 'roles':
+                                await guildData.settings.permissions.roles.resetAll();
+                                return message.channel.send(this.embedify(message.guild, `Successfully reset all permission overrides for all roles on this server!`));
+                            case 'u':
+                            case 'user':
+                            case 'users':
+                                await guildData.settings.permissions.users.resetAll();
+                                return message.channel.send(this.embedify(message.guild, `Successfully reset all permission overrides for all users on this server!`));
+                        }
+                    }
                     if (arrayCheck) return message.channel.send(this.embedify(message.guild, `You can only modify the following internal permissions for a user!\n\n**Managable permissions**\n•\`${allManagablePermissions.join("`\n•`")}\`\n\n\`${this.limitLength(arrayCheck.join("`, `"), 1200)}\` ${arrayCheck.length > 1 ? `are not valid permissions!` : `is not a valid permission!`}`, true));
 
-                    if (roleOrUser.user) {
-                        const userPermissionData = await guildData.settings.permissions.users.getForUser(roleOrUser.id);
-                        for (const permission of requestedPermissions) {
-                            if (managableInternalPermissions.includes(permission)) await userPermissionData.internal.reset(permission);
-                            if (managableDiscordPermissions.includes(permission)) await userPermissionData.discord.reset(requestedPermissions);
-                        }
-                    }
-                    else {
-                        const rolePermissionData = await guildData.settings.permissions.roles.getForRole(roleOrUser.id);
-                        for (const permission of requestedPermissions) {
-                            if (managableInternalPermissions.includes(permission)) await rolePermissionData.internal.reset(permission);
-                            if (managableDiscordPermissions.includes(permission)) await rolePermissionData.discord.reset(requestedPermissions);
-                        }
+                    if (!roleOrUser) return message.channel.send(this.embedify(message.guild, `Please provide a user or role id to reset \`${requestedPermissions.join("`, `")}\` permission${requestedPermissions.length > 1 ? "s" : ""} for!`, true));
+
+                    const roleOrUserPermissionData = roleOrUser.user ? await guildData.settings.permissions.users.getForUser(roleOrUser.id) : await guildData.settings.permissions.roles.getForRole(roleOrUser.id);
+
+                    const internalPermissionsToModify = [];
+                    const discordPermissionsToModify = [];
+                    for (const permission of requestedPermissions) {
+                        if (managableInternalPermissions.includes(permission)) internalPermissionsToModify.push(permission);
+                        if (managableDiscordPermissions.includes(permission)) discordPermissionsToModify.push(permission);
                     }
 
-                    return message.channel.send(this.embedify(message.guild, `Reset the following permissions to default for ${roleOrUser}\n•\`${requestedPermissions.join("`\n•`")}\``))
+                    if (internalPermissionsToModify.length < 1 && discordPermissionsToModify.length < 1) {
+                        await roleOrUserPermissionData.resetAll();
+                        return message.channel.send(this.embedify(message.guild, `Reset all permissions to default for ${roleOrUser}`));
+                    }
+                    else {
+                        if (internalPermissionsToModify.length > 0) await roleOrUserPermissionData.internal.reset(internalPermissionsToModify);
+                        if (discordPermissionsToModify.length > 0) await roleOrUserPermissionData.discord.reset(discordPermissionsToModify);
+                        return message.channel.send(this.embedify(message.guild, `Reset the following permissions to default for ${roleOrUser}\n•\`${requestedPermissions.join("`\n•`")}\``));
+                    }
                 }
             }
         }
-    }
-
-    async checkIfUserProvided(args, message, modify, errorMessage = true) {
-        if (!args[1])
-            return message.channel.send(this.embedify(message.guild, `Please provide a role or user id to ${modify ? `modify` : `view`} permissions for!`, true));
-        const result = args[1].match(idOrTagRegex);
-        if (!result) {
-            await message.channel.send(this.embedify(message.guild, "Invalid role or user id provided!", true));
-            return { err: true };
-        }
-
-        const roleOrUser = await message.guild.member(result.groups.id) || await message.guild.roles.fetch(result.groups.id);
-        if (!roleOrUser) {
-            await message.channel.send(this.embedify(message.guild, "Could not find the role or user you were looking for!", true));
-            return { err: true };
-        }
-
-        return roleOrUser;
     }
 }

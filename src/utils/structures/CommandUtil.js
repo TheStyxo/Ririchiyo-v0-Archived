@@ -23,6 +23,8 @@ module.exports = class CommandUtil {
         return new MessageEmbed().setColor(colour).setDescription(message);
     }
     hasAll(has, req) {
+        if (!has) return [];
+        if (!req) return false;
         if (!Array.isArray(req)) req = [req];
         if (!Array.isArray(has)) has = [has];
         const mis = req.filter(p => !has.includes(p))

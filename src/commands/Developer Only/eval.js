@@ -12,7 +12,8 @@ module.exports = class EvalCommand extends BaseCommand {
             aliases: "e",
             category: "developer",
             description: "Evaluate a code snippet",
-            hidden: true
+            editedEvent: true,
+            requiredPermissionsToView: { internal: ["BOT_OWNER"] }
         })
     }
     async run({ message, arg, editedEvent }) {

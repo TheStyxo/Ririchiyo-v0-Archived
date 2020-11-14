@@ -87,14 +87,14 @@ class Manager extends events_1.EventEmitter {
         return this.nodes
             .filter((node) => node.connected)
             .sort((a, b) => {
-            const aload = a.stats.cpu
-                ? (a.stats.cpu.systemLoad / a.stats.cpu.cores) * 100
-                : 0;
-            const bload = b.stats.cpu
-                ? (b.stats.cpu.systemLoad / b.stats.cpu.cores) * 100
-                : 0;
-            return aload - bload;
-        });
+                const aload = a.stats.cpu
+                    ? (a.stats.cpu.systemLoad / a.stats.cpu.cores) * 100
+                    : 0;
+                const bload = b.stats.cpu
+                    ? (b.stats.cpu.systemLoad / b.stats.cpu.cores) * 100
+                    : 0;
+                return aload - bload;
+            });
     }
     /**
      * Initiates the Manager.
@@ -208,24 +208,24 @@ class Manager extends events_1.EventEmitter {
      * @param options
      */
     create(options) {
-        if (this.players.has(options.guild)) {
-            return this.players.get(options.guild);
+        if (this.players.has(options.guild.id)) {
+            return this.players.get(options.guild.id);
         }
         return new (Utils_1.Structure.get("Player"))(options);
     }
     /**
      * Returns a player or undefined if it does not exist.
-     * @param guild
+     * @param guildID
      */
-    get(guild) {
-        return this.players.get(guild);
+    get(guildID) {
+        return this.players.get(guildID);
     }
     /**
      * Destroys a player if it exists.
-     * @param guild
+     * @param guildID
      */
-    destroy(guild) {
-        this.players.delete(guild);
+    destroy(guildID) {
+        this.players.delete(guildID);
     }
     /**
      * Sends voice data to the Lavalink server.
@@ -248,9 +248,10 @@ class Manager extends events_1.EventEmitter {
             if (data.d.user_id !== this.options.clientId)
                 return;
             state.sessionId = data.d.session_id;
-            if (player.voiceChannel !== data.d.channel_id) {
-                this.emit("playerMove", player, player.voiceChannel, data.d.channel_id);
-                player.voiceChannel = data.d.channel_id;
+            if (player.voiceChannel.id !== data.d.channel_id) {
+                const newChannelOBJ = player.guild.channels.resolve(data.d.channel_id);
+                this.emit("playerMove", player, player.voiceChannel, newChannelOBJ);
+                player.voiceChannel = newChannelOBJ;
             }
         }
         player.voiceState = state;

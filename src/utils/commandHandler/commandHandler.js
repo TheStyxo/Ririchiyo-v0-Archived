@@ -1,5 +1,4 @@
 const CommandHandlerUtil = require('./CommandHandlerUtil');
-const { Collection } = require('discord.js');
 
 module.exports = class CommandHandler extends CommandHandlerUtil {
     cooldowns = new this.discord.Collection();
@@ -19,6 +18,8 @@ module.exports = class CommandHandler extends CommandHandlerUtil {
         const command = message.client.commands.get(commandName) || message.client.commands.find((cmd) => cmd.aliases && cmd.aliases.includes(commandName));
 
         if (!command) return;
+
+        if (opts.editedEvent && !command.editedEvent) return;
 
         message.author.permissions = await guildData.settings.permissions.users.getForUser(message.member.id).calculateOverwrites(await message.member.roles.cache.keyArray(), await message.channel.permissionsFor(message.member), userData.premium.enabled);
 

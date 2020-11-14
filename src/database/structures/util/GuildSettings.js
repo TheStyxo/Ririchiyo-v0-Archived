@@ -1,13 +1,15 @@
 const GuildPremium = require('./GuildPremium');
 const GuildPermissions = require('./GuildPermissions');
 const AnnouncementSettings = require('./AnnouncementSettings');
+const MusicSettings = require("./MusicSettings");
 const settings = require('../../../../config/settings.json');
 
 module.exports = class GuildSettings {
     constructor(db, settingsData, id) {
         this.premium = new GuildPremium(db, settingsData.premium, id);
         this.permissions = new GuildPermissions(db, settingsData.permissions, id);
-        this.announcements = new AnnouncementSettings(db, settingsData.announcements, id)
+        this.announcements = new AnnouncementSettings(db, settingsData.announcements, id);
+        this.music = new MusicSettings(db, settingsData.music, id);
 
         Object.defineProperty(this, "prefix", {
             get: function () { return settingsData.prefix },

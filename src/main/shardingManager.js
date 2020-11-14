@@ -2,7 +2,7 @@ const credentials = require('../../config/credentials.json');
 const settings = require("../../config/settings.json");
 
 const { ShardingManager } = require('discord.js');
-const shard = new ShardingManager('./src/main/index.js', {
+const shard = new ShardingManager('src/main/index.js', {
     token: credentials.discord.token,
     autoSpawn: true,
     totalShards: settings.client.shards.totalShards,

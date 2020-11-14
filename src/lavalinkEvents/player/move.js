@@ -6,6 +6,6 @@ module.exports = class PlayerMoveEvent extends BaseEvent {
     }
 
     async run(manager, player, oldChannel, newChannel) {
-        console.log(newChannel);//manager.nodes.keyArray()
+        player.voiceChannel = newChannel;
     }
 }

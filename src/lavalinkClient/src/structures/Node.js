@@ -85,7 +85,7 @@ class Node {
         const headers = {
             Authorization: this.options.password,
             "Num-Shards": String(this.manager.options.shards),
-            "User-Id": this.manager.options.clientId,
+            "User-Id": this.manager.options.client.user.id,
         };
         this.socket = new ws_1.default(`ws${this.options.secure ? "s" : ""}://${this.options.host}:${this.options.port}/`, { headers });
         this.socket.on("open", this.open.bind(this));

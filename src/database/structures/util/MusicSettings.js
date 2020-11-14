@@ -6,7 +6,7 @@ module.exports = class MusicSettings {
             get: function () { return musicSettingsData.votingPercentage },
             set: function (value) {
                 if (!value) delete musicSettingsData.votingPercentage;
-                else musicSettingsData.votingPercentage;
+                else musicSettingsData.votingPercentage = value;
                 db.updateOne({ _id: id }, { [value ? `$set` : `$unset`]: { "settings.music.votingPercentage": value } }, { upsert: true })
             }
         });
@@ -14,8 +14,16 @@ module.exports = class MusicSettings {
             get: function () { return musicSettingsData.loop },
             set: function (value) {
                 if (!value) delete musicSettingsData.loop;
-                else musicSettingsData.loop;
+                else musicSettingsData.loop = value;
                 db.updateOne({ _id: id }, { [value ? `$set` : `$unset`]: { "settings.music.loop": value } }, { upsert: true })
+            }
+        });
+        Object.defineProperty(this, "24/7", {
+            get: function () { return musicSettingsData.loop },
+            set: function (value) {
+                if (!value) delete musicSettingsData["24/7"];
+                else musicSettingsData["24/7"] = value;
+                db.updateOne({ _id: id }, { [value ? `$set` : `$unset`]: { "settings.music.24/7": value } }, { upsert: true })
             }
         });
     }
@@ -51,8 +59,8 @@ class EQSettings {
             return this;
         }
         this.clearEQ = function () {
-            this.bands = new Array(15).fill(0.0);
-            return this.setEQ();
+            const bands = new Array(15).fill(0.0).map((value, index) => { return { band: index, gain: value } });
+            return this.setEQ(bands);
         }
     }
 }

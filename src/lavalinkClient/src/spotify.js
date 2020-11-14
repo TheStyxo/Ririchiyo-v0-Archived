@@ -16,13 +16,14 @@ const axios_1 = __importDefault(require("axios"));
 const TEMPLATE = ["clientID", "clientSecret"];
 const BASE_URL = "https://api.spotify.com/v1";
 const REGEX = /(?:https:\/\/open\.spotify\.com\/|spotify:)(.+)(?:[\/:])([A-Za-z0-9]+)/;
-const buildSearch = (loadType, tracks, error, name) => ({
+const buildSearch = (loadType, tracks, error, name, uri) => ({
     loadType: loadType,
     tracks: tracks !== null && tracks !== void 0 ? tracks : [],
     playlist: name ? {
         name,
-        duration: tracks
-            .reduce((acc, cur) => acc + (cur.duration || 0), 0),
+        duration: tracks.reduce((acc, cur) => acc + (cur.duration || 0), 0),
+        uri: uri
+
     } : null,
     exception: error ? {
         message: error,
@@ -69,7 +70,7 @@ class Spotify extends erela_js_1.Plugin {
                         const loadType = type === "track" ? "TRACK_LOADED" : "PLAYLIST_LOADED";
                         const name = ["playlist", "album"].includes(type) ? data.name : null;
                         const tracks = data.tracks.map(track => erela_js_1.TrackUtils.buildUnresolved(track, requester));
-                        return buildSearch(loadType, tracks, null, name);
+                        return buildSearch(loadType, type === "track" ? tracks[0] : tracks, null, name, data.uri);
                     }
                     const msg = 'Incorrect type for Spotify URL, must be one of "track", "album", "playlist".';
                     return buildSearch("LOAD_FAILED", null, msg, null);
@@ -91,7 +92,11 @@ class Spotify extends erela_js_1.Plugin {
                 tracks.push(...nextPage.items.map(item => Spotify.convertToUnresolved(item)));
                 next = nextPage.next;
             }
-            return { tracks, name: album.name };
+            return {
+                tracks,
+                name: album.name,
+                uri: album.external_urls.spotify
+            };
         });
     }
     getPlaylistTracks(id) {
@@ -104,14 +109,21 @@ class Spotify extends erela_js_1.Plugin {
                 tracks.push(...nextPage.items.map(item => Spotify.convertToUnresolved(item.track)));
                 next = nextPage.next;
             }
-            return { tracks, name: playlist.name };
+            return {
+                tracks,
+                name: playlist.name,
+                uri: playlist.external_urls.spotify
+            };
         });
     }
     getTrack(id) {
         return __awaiter(this, void 0, void 0, function* () {
             const { data } = yield axios_1.default.get(`${BASE_URL}/tracks/${id}`, this.options);
             const track = Spotify.convertToUnresolved(data);
-            return { tracks: [track] };
+            return {
+                tracks: [track],
+                uri: data.external_urls.spotify
+            };
         });
     }
     static convertToUnresolved(track) {
@@ -129,6 +141,7 @@ class Spotify extends erela_js_1.Plugin {
             title: track.name,
             artist: track.artists[0].name,
             duration: track.duration_ms,
+            uri: track.external_urls.spotify
         };
     }
     renewToken() {

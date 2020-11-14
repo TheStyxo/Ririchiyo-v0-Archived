@@ -40,7 +40,7 @@ async function loadEvents(client, dir = "", opts) {
             if (Event.prototype instanceof BaseEvent) {
                 const evt = new Event();
                 if (options.excl.events.includes(evt.name) || options.excl.cats.includes(evt.category)) continue;
-                client.on(evt.name, evt.run.bind(null, client));
+                client.on(evt.name, evt.run.bind(evt, client));
                 console.log("Loaded Event: " + evt.name);
             }
         }

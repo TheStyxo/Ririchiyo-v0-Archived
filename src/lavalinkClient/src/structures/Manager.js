@@ -24,9 +24,6 @@ function check(options) {
         throw new TypeError("ManagerOptions must not be empty.");
     if (typeof options.send !== "function")
         throw new TypeError('Manager option "send" must be present and a function.');
-    if (typeof options.clientId !== "undefined" &&
-        !/^\d+$/.test(options.clientId))
-        throw new TypeError('Manager option "clientId" must be a non-empty string.');
     if (typeof options.nodes !== "undefined" &&
         !Array.isArray(options.nodes))
         throw new TypeError('Manager option "nodes" must be a array.');
@@ -98,19 +95,16 @@ class Manager extends events_1.EventEmitter {
     }
     /**
      * Initiates the Manager.
-     * @param clientId
+     * @param client
      */
-    init(clientId) {
+    init(client) {
         if (this.initiated)
             return this;
-        if (typeof clientId !== "undefined")
-            this.options.clientId = clientId;
-        if (typeof this.options.clientId !== "string")
-            throw new Error('"clientId" set is not type of "string"');
-        if (!this.options.clientId)
+        if (!this.options.client && !client)
             throw new Error('"clientId" is not set. Pass it in Manager#init() or as a option in the constructor.');
-        for (const node of this.nodes.values())
-            node.connect();
+        this.options.client = client;
+        for (const node of this.nodes.values()) node.connect();
+
         Utils_1.Structure.get("Player").init(this);
         this.initiated = true;
         return this;
@@ -136,8 +130,8 @@ class Manager extends events_1.EventEmitter {
             if (!/^https?:\/\//.test(search)) {
                 search = `${source}search:${search}`;
             }
-            const url = `http${node.options.secure ? "s" : ""}://${node.options.host}:${node.options.port}/loadtracks`;
-            const res = yield axios_1.default.get(url, {
+            const uri = `http${node.options.secure ? "s" : ""}://${node.options.host}:${node.options.port}/loadtracks`;
+            const res = yield axios_1.default.get(uri, {
                 headers: { Authorization: node.options.password },
                 params: { identifier: search },
                 timeout: 10000,
@@ -175,8 +169,8 @@ class Manager extends events_1.EventEmitter {
             const node = this.nodes.first();
             if (!node)
                 throw new Error("No available nodes.");
-            const url = `http${node.options.secure ? "s" : ""}://${node.options.host}:${node.options.port}/decodetracks`;
-            const res = yield axios_1.default.post(url, tracks, {
+            const uri = `http${node.options.secure ? "s" : ""}://${node.options.host}:${node.options.port}/decodetracks`;
+            const res = yield axios_1.default.post(uri, tracks, {
                 headers: { Authorization: node.options.password },
             }).catch((err) => {
                 return reject(err);
@@ -245,13 +239,16 @@ class Manager extends events_1.EventEmitter {
             state.event = data.d;
         }
         else {
-            if (data.d.user_id !== this.options.clientId)
+            if (data.d.user_id !== this.options.client.user.id)
                 return;
             state.sessionId = data.d.session_id;
             if (player.voiceChannel.id !== data.d.channel_id) {
-                const newChannelOBJ = player.guild.channels.resolve(data.d.channel_id);
-                this.emit("playerMove", player, player.voiceChannel, newChannelOBJ);
-                player.voiceChannel = newChannelOBJ;
+                if (!data.d.channel_id) this.emit("playerDisconnect", player, player.voiceChannel);
+                else {
+                    const newChannelOBJ = player.guild.channels.resolve(data.d.channel_id);
+                    this.emit("playerMove", player, player.voiceChannel, newChannelOBJ);
+                    player.voiceChannel = newChannelOBJ;
+                }
             }
         }
         player.voiceState = state;

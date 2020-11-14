@@ -31,9 +31,9 @@ module.exports = class InfoCommand extends BaseCommand {
             .addField(`Servers`, `${parseInt(totalGuilds)}`, true)
             .addField(`Users`, `${parseInt(totalUsers)}`, true)
             .addField(`Commands`, `${message.client.commands.size}`, true)
-            .addField(`Support`, `**[Join](${this.settings.client.info.supportServerURL})**`, true)
+            .addField(`Support`, `**[Support](${this.settings.client.info.supportServerURL})**`, true)
             .addField(`Invite`, `**[Invite](${invite})**`, true)
-            .addField(`Try premium`, `**[Contact us](${this.settings.client.info.supportServerURL})**`, true)
+            .addField(`Get premium`, `**[Premium](${this.settings.client.info.premiumURL})**`, true)
             .setFooter(`${this.settings.client.info.hosting} | Shard [${parseInt(message.guild.shard.id) + 1}/${message.client.shard.count}] | Uptime ${uptime}`)
             .setColor(this.getClientColour(message.guild));
 

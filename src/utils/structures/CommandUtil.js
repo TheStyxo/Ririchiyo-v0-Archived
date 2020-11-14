@@ -30,9 +30,7 @@ module.exports = class CommandUtil {
         const mis = req.filter(p => !has.includes(p))
         return mis.length > 0 ? mis : null;
     }
-    firstLetterCaps(string) {
-        return string.charAt(0).toUpperCase() + string.slice(1);
-    }
+    firstLetterCaps = (string) => string.charAt(0).toUpperCase() + string.slice(1);
     limitLength(string, limit, useWordBoundary) {
         if (string.length <= limit) { return string; }
         const subString = string.substr(0, limit - 1); // the original check
@@ -40,4 +38,6 @@ module.exports = class CommandUtil {
             ? subString.substr(0, subString.lastIndexOf(" "))
             : subString) + "...";
     };
+    getArrayAverage = (array) => array.reduce((a, b) => a + b) / array.length;
+    multiplyString = (times, string) => Array(times + 1).join(string);
 }

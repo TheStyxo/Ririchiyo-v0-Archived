@@ -1,6 +1,9 @@
 const CommandUtil = require("../utils/structures/CommandUtil");
 
 module.exports = class MusicUtil extends CommandUtil {
+    constructor() {
+        super();
+    }
     calculateMembersRequiredToVote = function (member, guildData) {
         const { channel: voiceChannel } = member.voice;
         voiceChannelMemberCount = voiceChannel.members.filter(member => !member.user.bot).size
@@ -12,12 +15,13 @@ module.exports = class MusicUtil extends CommandUtil {
     canModifyPlayer = async function ({ message, noPlayer, requiredPerms, errorEmbed, spawningPlayer }) {
         if (errorEmbed) errorEmbed = new this.discord.MessageEmbed().setColor(this.appearance.error.colour);
         const player = message.guild.player;
+        const { channel: meVoiceChannel } = message.guild.me.voice || {};
         const { channel: authorVoiceChannel } = message.member.voice;
         if (!noPlayer && !player) {
             if (errorEmbed) message.channel.send(errorEmbed.setDescription("There is nothing playing right now!"));
             return { error: { message: "NO_PLAYER", code: 1 } } //If player is required and player does not exist return err
         }
-        if (player) {
+        if (player && meVoiceChannel) {
             if (!authorVoiceChannel) {
                 if (spawningPlayer) {
                     message.channel.send(errorEmbed.setDescription("Already playing in a different channel!"));
@@ -27,7 +31,7 @@ module.exports = class MusicUtil extends CommandUtil {
                 return { error: { message: "NO_AUTHOR_CHANNEL_AND_PLAYER_EXISTS", code: 3 } };
             }
             else {
-                if (authorVoiceChannel.id != player.voiceChannel) {
+                if (authorVoiceChannel.id != player.voiceChannel.id) {
                     if (spawningPlayer) {
                         message.channel.send(errorEmbed.setDescription("Already playing in a different channel!"));
                         return { error: { message: "PLAYER_ALREADY_EXISTS", code: 4 } };
@@ -41,7 +45,7 @@ module.exports = class MusicUtil extends CommandUtil {
                         return { error: { message: "PLAYER_ALREADY_EXISTS_SAME_CHANNEL", code: 6 } };
                     }
                     const authorVoiceChannelMemberCount = authorVoiceChannel.members.filter(member => !member.user.bot).size;
-                    checkPerms = this.hasAll(message.author.permissions.internal.final.toArray(), requiredPerms);
+                    const checkPerms = this.hasAll(message.author.permissions.internal.final.toArray(), requiredPerms);
                     if (!checkPerms) return { success: { message: "HAS_PERMS", code: 1 }, player: player }
                     else {
                         if (authorVoiceChannelMemberCount > 1) {
@@ -79,7 +83,7 @@ module.exports = class MusicUtil extends CommandUtil {
                     }
                 }
                 else {
-                    if (errorEmbed) message.channel.send(errorEmbed.setDescription(`There is nothing playing right now!`));
+                    if (errorEmbed) await message.channel.send(errorEmbed.setDescription(`There is nothing playing right now!`));
                     return { error: { message: "NO_PERMS_AND_NO_PLAYER", code: 10 } };
                 }
             }

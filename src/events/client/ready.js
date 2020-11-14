@@ -14,7 +14,7 @@ module.exports = class ReadyEvent extends BaseEvent {
 
         client.db = database;
 
-        await client.lavalinkClient.init(client.user.id);
+        await client.lavalinkClient.init(client);
 
         if (clientData.activity.devMode.enabled) {
             client.user.setActivity(clientData.activity.devMode.status, { type: clientData.activity.devMode.type });

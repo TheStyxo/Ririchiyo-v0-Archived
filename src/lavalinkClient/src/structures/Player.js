@@ -21,6 +21,8 @@ class Player {
         this.options = options;
         /** The Queue for the Player. */
         this.queue = new (Utils_1.Structure.get("Queue"))();
+        /** The Previous Tracks for the Player. */
+        this.previousTracks = [];
         /** Whether the queue repeats the track. */
         this.trackRepeat = false;
         /** Whether the queue repeats the queue. */
@@ -49,7 +51,11 @@ class Player {
         if (this.manager.players.has(options.guild.id)) {
             return this.manager.players.get(options.guild.id);
         }
+        this.client = this.manager.options.client;
         this.guild = options.guild;
+        this.guildData = options.guildData;
+        this.inactivityTimeout = options.inactivityTimeout;
+        this.loopType = "d";
         if (options.voiceChannel)
             this.voiceChannel = options.voiceChannel;
         if (options.textChannel)
@@ -126,6 +132,21 @@ class Player {
             },
         });
         this.state = "CONNECTED";
+
+        this.inactivityChecker = {
+            stop: false,
+            times: 0,
+            player: this,
+            run: async function () {
+                if (!(this.player.guildData.settings.music["24/7"] && this.player.guildData.settings.premium.enabled))
+                    if (!this.player.playing || this.player.voiceChannel.members.filter(member => !member.user.bot).size < 1)
+                        if (this.times > 1) this.player.manager.emit("playerInactivity", this.player);
+                        else ++this.times;
+                if (!this.stop) setTimeout(() => this.run(), this.player.inactivityTimeout);
+            }
+        }
+        this.inactivityChecker.run();
+
         return this;
     }
     /** Disconnect from the voice channel. */
@@ -143,7 +164,7 @@ class Player {
                 self_deaf: false,
             },
         });
-        this.voiceChannel.id = null;
+        this.voiceChannel = null;
         this.state = "DISCONNECTED";
         return this;
     }
@@ -157,6 +178,8 @@ class Player {
         });
         this.manager.emit("playerDestroy", this);
         this.manager.players.delete(this.guild.id);
+        this.inactivityChecker.stop = true;
+        if (this.guild) delete this.guild.player;
     }
     /**
      * Sets the player voice channel.
@@ -230,10 +253,12 @@ class Player {
         if (typeof repeat !== "boolean")
             throw new TypeError('Repeat can only be "true" or "false".');
         if (repeat) {
+            this.loopType = "t";
             this.trackRepeat = true;
             this.queueRepeat = false;
         }
         else {
+            this.loopType = "d";
             this.trackRepeat = false;
             this.queueRepeat = false;
         }
@@ -247,10 +272,12 @@ class Player {
         if (typeof repeat !== "boolean")
             throw new TypeError('Repeat can only be "true" or "false".');
         if (repeat) {
+            this.loopType = "q";
             this.trackRepeat = false;
             this.queueRepeat = true;
         }
         else {
+            this.loopType = "d";
             this.trackRepeat = false;
             this.queueRepeat = false;
         }

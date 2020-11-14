@@ -22,13 +22,15 @@
             "defaultVotingPercentage": 45,
             "defaultLoopValue": "d",
             "defaultVolume": 100,
-            "defaultLimitVolume": true
+            "defaultLimitVolume": true,
+            "inactivityTimeout": 120000
         },
         "info": {
             "websiteURL": "https://ririchiyobot.wixsite.com/ririchiyo",
+            "premiumURL": "https://discord.gg/XgwdeEv",
             "supportServerURL": "https://discord.gg/XgwdeEv",
             "version": "0.8.9",
-            "library": "discord.js @^12.4.1",
+            "library": "discord.js",
             "hosting": "@localhost/ririchiyo-dev-deps"
         }
     }

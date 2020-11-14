@@ -6,10 +6,9 @@ module.exports = class SummonCommand extends BaseCommand {
     constructor() {
         super({
             name: "summon",
-            aliases: ["sum"],
+            aliases: ["join", "j", "sum"],
             description: "Make the bot join your channel",
             category: "music",
-            cooldown: 5,
         })
     }
     async run({ message, internalCall, guildData, skipConditions }) {
@@ -20,9 +19,28 @@ module.exports = class SummonCommand extends BaseCommand {
             else authorVoiceChannel = conditions.authorVoiceChannel;
         }
         else authorVoiceChannel = skipConditions;
+        const { channel: meVoiceChannel } = message.guild.me.voice || {};
 
-        const player = await message.client.lavalinkClient.create({
+        if (message.guild.player && !meVoiceChannel) {
+            if (!internalCall) {
+                const reconnectedEmbed = new this.discord.MessageEmbed()
+                    .setDescription(`**Reconnected to your voice channel!**`)
+                    .addField("Player Voice Channel", `${this.appearance.playerEmojis.voice_channel_icon_normal.emoji} ${authorVoiceChannel.name}`)
+                    .addField("Player Text Channel", `<#${message.channel.id}>`)
+                    .addField("Volume", `${message.guild.player.volume}%`, true)
+                    .addField("Loop", `${message.guild.player.trackRepeat ? `Track` : (message.guild.player.queueRepeat ? `Queue` : `Disabled`)}`, true)
+                    .addField("Volume limit to 100", `${!guildData.settings.music.volume.limit ? `Disabled` : `Enabled`}`, true)
+                    .setColor(this.getClientColour(message.guild))
+                await message.channel.send(reconnectedEmbed);
+            }
+            await message.guild.player.connect();
+            return { player: message.guild.player, guild: message.guild };
+        }
+
+        message.guild.player = await message.client.lavalinkClient.create({
             guild: message.guild,
+            guildData: guildData,
+            inactivityTimeout: this.settings.client.music.inactivityTimeout,
             voiceChannel: authorVoiceChannel,
             textChannel: message.channel,
             selfDeafen: true,
@@ -31,40 +49,32 @@ module.exports = class SummonCommand extends BaseCommand {
 
         //apply guild settings to player
         switch (guildData.settings.music.loop.value) {
-            case "q": player.setQueueRepeat(true);
+            case "q": message.guild.player.setQueueRepeat(true);
                 break;
-            case "t": player.setTrackRepeat(true);
+            case "t": message.guild.player.setTrackRepeat(true);
                 break;
             default:
                 break;
         }
 
-        await player.setEQ(guildData.settings.music.eq.bands.map((gain, index) => { return { band: index, gain } }));
-
-        //additional player data
-        player.guildOBJ = message.guild;
-        player.client = message.client;
-        player.previousTracks = [];
+        await message.guild.player.setEQ(guildData.settings.music.eq.bands.map((gain, index) => { return { band: index, gain } }));
 
         //connect to the channel
-        await player.connect();
-
-        //access player from guild
-        message.guild.player = player;
+        await message.guild.player.connect();
 
         if (!internalCall) {
             const joinedEmbed = new this.discord.MessageEmbed()
                 .setDescription(`**Joined your voice channel!**`)
                 .addField("Player Voice Channel", `${this.appearance.playerEmojis.voice_channel_icon_normal.emoji} ${authorVoiceChannel.name}`)
                 .addField("Player Text Channel", `<#${message.channel.id}>`)
-                .addField("Volume", `${player.volume}`, true)
-                .addField("Loop", `${player.trackRepeat ? `Track` : (player.queueRepeat ? `Queue` : `Disabled`)}`, true)
+                .addField("Volume", `${message.guild.player.volume}`, true)
+                .addField("Loop", `${message.guild.player.trackRepeat ? `Track` : (message.guild.player.queueRepeat ? `Queue` : `Disabled`)}`, true)
                 .addField("Volume limit to 100", `${!guildData.settings.music.volume.limit ? `Disabled` : `Enabled`}`, true)
                 .setColor(this.getClientColour(message.guild))
             await message.channel.send(joinedEmbed);
         }
 
-        return { player: player, guild: message.guild };
+        return { player: message.guild.player, guild: message.guild };
     }
 
     async testConditions({ message, internalCall }) {

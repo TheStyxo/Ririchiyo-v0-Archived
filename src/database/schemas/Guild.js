@@ -23,6 +23,7 @@ module.exports = {
             },
             "votingPercentage": settings.client.music.defaultVotingPercentage,
             "loop": settings.client.music.defaultLoopValue,
+            "24/7": undefined
         },
         "announcements": {
             "welcome": {
